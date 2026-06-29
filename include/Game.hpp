@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <list>
 #include <queue>
 #include "Entities.hpp"
@@ -9,19 +10,28 @@ private:
     sf::RenderWindow window;
     Hero hero;
     Base baseCore;
+    
+    // Áudio
+    sf::Music bgMusic;
+    
+    // HUD
+    sf::Font font;
+    sf::Text hpText;
+    sf::Text ammoText;
 
-    std::list<Projectile> projectiles;
-    std::list<Enemy> enemies;
-    std::list<AmmoDrop> ammoDrops;
+    // Entidades e Sistema
     std::queue<float> spawnQueue;
+    std::list<Enemy> enemies;
+    std::list<Projectile> projectiles;
+    std::list<AmmoDrop> ammoDrops;
 
     float timeSurvived;
     bool gameOver;
 
     void processEvents();
     void update(float dt);
-    void render();
     void handleCollisions();
+    void render();
 
 public:
     Game();
