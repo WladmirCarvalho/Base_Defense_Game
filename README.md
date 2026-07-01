@@ -2,7 +2,7 @@
 
 Projeto desenvolvido para a disciplina de programação do curso de Bacharelado em Tecnologia da Informação (BTI) da UFRN. 
 
-Trata-se de um jogo de sobrevivência 2D *top-down* onde o jogador controla um herói que deve defender sua base central contra ondas progressivas de inimigos, gerenciando sua vida, integridade da base e recursos limitados de munição.
+Trata-se de um jogo de sobrevivência tático 2D *top-down* com dinâmica **Time Attack**. O jogador controla um herói que deve defender sua base central contra ondas progressivas de inimigos, com o objetivo mandatório de eliminar o Final Boss antes que o tempo se esgote.
 
 ## ⚙️ Tecnologias Utilizadas
 * **Linguagem:** C++ (Padrão C++17)
@@ -19,25 +19,31 @@ Trata-se de um jogo de sobrevivência 2D *top-down* onde o jogador controla um h
 * HUD em tempo real exibindo Vida e Munição (fonte customizada).
 * Trilha sonora em loop dinâmico.
 
-## 🚀 Incrementos e Novas Mecânicas (Fase Avançada)
+## 🚀 Incrementos Avançados (Modo Time Attack)
 
-Para além do escopo inicial, o projeto recebeu uma reestruturação completa de sua lógica de jogabilidade, introduzindo progressão de dificuldade, gerenciamento avançado de memória/entidades e uma batalha final:
+O projeto passou por uma reestruturação arquitetural completa para integrar os sistemas de Menu Inicial, Leaderboard persistente e uma progressão de hordas com fim definitivo:
 
-* **Gerenciamento de Partida com Fim Definido:** A sobrevivência agora é limitada pela duração da trilha sonora (200 segundos), estabelecendo condições claras e sintonizadas de vitória.
-* **Progressão de Dificuldade em 3 Estágios:** * *Estágio 1 (0s - 50s):* Ritmo cadenciado para acúmulo de recursos.
-  * *Estágio 2 (50s - 110s):* Aumento do limite de inimigos em tela e aceleração do spawn.
-  * *Estágio 3 (110s - 170s):* Entrada no modo frenético, com inimigos surgindo em duplas em intervalos reduzidos.
-* **Sistema de Drops e Balanço de Odds:** Probabilidades refinadas para a morte de inimigos comuns (60% Munição Normal, 20% Vida, 10% MegaAmmo e 10% PowerUp), com um limitador de munição máxima fixado em 150 cartuchos (`maxAmmo`).
-* **Inimigos Especiais e Inteligência do Final Boss:**
-  * *MiniBoss:* Surge a cada 20 inimigos comuns, com tamanho escalado, maior quantidade de HP e dano ampliado.
-  * *Final Boss:* Desativa o spawn comum aos 167s. Possui 1500 HP e uma máquina de estados que executa **teleportes aleatórios táticos** a cada 150 HP perdidos.
-  * *Mecânica de Drops Dinâmicos do Chefe:* O Boss dropa `MegaAmmo` ao teleportar e libera insumos críticos (Vida e PowerUp) ao atingir 50% de seu HP (750 HP).
-  * *Animação Dramática de Morte:* Ao ser derrotado, o chefe congela sua movimentação, para de atirar e executa uma animação de rotação contínua combinada com encolhimento de escala até sumir do mapa.
-* **Polimento Visual e Evolução da HUD:**
-  * *Muro Dinâmico da Base:* A espessura do contorno da base reage proporcionalmente à sua integridade real (Muro grosso acima de 50%, médio acima de 20%, fino abaixo disso).
-  * *Danger Border:* Uma borda vermelha pulsante e translúcida é desenhada nos limites exatos da janela durante toda a batalha do chefe, gerando efeito de urgência.
-  * *Telas de Status Não-Bloqueantes:* A tela de "YOU WIN!" aparece centralizada em uma caixa escura de destaque no exato momento da morte do chefe sem congelar a aplicação, permitindo que as animações de fundo e os créditos finais se encerrem de forma fluida.
-  * *Créditos Finais:* Rolagem de texto automatizada na lateral esquerda da tela com parada elegante no quadrante inferior para não sobrepor a base.
+* **Sistema de Jogo Baseado em Estados (State Machine):** Gerenciamento fluido entre as telas de `START` (Menu), `PLAYING` (Gameplay), `ENTER_NAME` (Inclusão de Recorde) e `GAME_OVER`, tratando transições de áudio e eventos periféricos de forma isolada.
+* **Cronômetro Regressivo e Condição de Vitória:** A HUD exibe um timer em contagem regressiva sintonizado com a duração da trilha sonora (200 segundos). A vitória só é computada se o Final Boss for inteiramente destruído antes do relógio zerar.
+* **Três Condições Distintas de Defeat:** O encerramento abrupto da partida ocorre se:
+  1. A integridade estrutural da Base Central chegar a zero.
+  2. Os pontos de vida (`HP`) do Herói zerarem.
+  3. O tempo limite esgotar e o Final Boss ainda estiver ativo no mapa (Estouro de Tempo).
+* **Progressão de Dificuldade Escalável:**
+  * *Estágio 1 (0s - 50s):* Cadência padrão de inimigos comuns para gerenciamento de recursos.
+  * *Estágio 2 (50s - 110s):* Aceleração do intervalo de spawn e elevação do limite de entidades simultâneas.
+  * *Estágio 3 (110s - 170s):* Modo frenético com spawns duplicados e introdução de *MiniBosses* a cada 20 eliminações comuns.
+* **Sistema de Recompensas e Suprimentos (Boosts):** Inimigos comuns e chefes dropam itens pelo mapa que são fundamentais para manter a cadência de tiro e a vida do herói. A probabilidade de drop é calculada dinamicamente, englobando quatro tipos:
+  * 📦 **Normal Ammo (Munição Comum - Verde):** Restaura 5 cartuchos de munição.
+  * 🔋 **Mega Ammo (Munição Pesada - Amarelo):** Restaura 20 cartuchos de munição de uma só vez.
+  * 💊 **Health (Cura - Magenta):** Recupera 50 pontos de vida do herói (respeitando o teto de 100 HP).
+  * ⚡ **Power-Up (Sobrecarga - Ciano):** Ativa um estado especial temporário de 10 segundos onde os projéteis disparam com dano triplicado (de 20 para 60 de dano por acerto).
+* **Inteligência do Final Boss e Drops de Suporte:** O Boss surge aos 170s, bloqueia o spawn de hordas comuns e executa **teleportes táticos aleatórios** a cada 150 HP perdidos. Ele dropa suprimentos críticos (`MegaAmmo` e `Health`) em marcos específicos de sua vida para manter o dinamismo técnico do combate.
+* **Leaderboard Persistente em Ordem Ascendente:** O sistema lê e salva dados em arquivo de texto. Ajustado para o modelo *Time Attack*, o placar filtra exclusivamente as vitórias do jogador e **ordena de forma crescente** (menor tempo de conclusão no topo do ranking).
+* **Polimento de UI e UX:**
+  * *Contorno Dinâmico:* A espessura do muro da base reage fisicamente à sua vida restante.
+  * *Danger Border:* Borda vermelha pulsante translúcida sintonizada via função seno matemática durante a fase do chefe.
+  * *Instruções de Jogo Integradas:* Textos guias posicionados nativamente e de forma exclusiva no Menu Inicial para manter a área de combate limpa.
 
 ## ⌨️ Controles
 * **Botão Direito do Mouse:** Move o herói para o local clicado.
@@ -45,7 +51,7 @@ Para além do escopo inicial, o projeto recebeu uma reestruturação completa de
 
 ## 🚀 Como Compilar e Rodar Localmente
 
-1. Certifique-se de ter o MinGW e o SFML 3.0 instalados e configurados nas variáveis de ambiente (`C:\msys64\...`).
+1. Certifique-se de ter o MinGW e o SFML 3.0 instalados e configurados nas variáveis de ambiente.
 2. Abra o terminal na pasta raiz do projeto.
 3. Compile o código executando o comando:
    ```powershell

@@ -1,3 +1,5 @@
 # Ignorar arquivos compilados e executáveis
 obj/
 *.exe
+leaderboard.txt
+base_defense
