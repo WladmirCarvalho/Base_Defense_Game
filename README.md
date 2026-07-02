@@ -26,7 +26,7 @@ Trata-se de um jogo de sobrevivência 2D *top-down* onde o jogador controla um h
 ## 🚀 Como Compilar e Rodar Localmente
 
 1. Certifique-se de ter o MinGW e o SFML 3.0 instalados e configurados nas variáveis de ambiente (`C:\msys64\...`).
-2. Abra o terminal na pasta raiz do projeto.
+2. Abra o terminal na pasta raiz do projeto
 3. Compile o código executando o comando:
    ```powershell
    mingw32-make

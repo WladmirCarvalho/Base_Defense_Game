@@ -18,6 +18,16 @@ private:
     sf::Font font;
     sf::Text hpText;
     sf::Text ammoText;
+    sf::Text moveHintText;
+    sf::Text shootHintText;
+
+    // Tela de Game Over
+    sf::Text gameOverText;
+    sf::Text finalTimeText;
+    sf::RectangleShape replayButton;
+    sf::Text replayButtonText;
+    sf::RectangleShape exitButton;
+    sf::Text exitButtonText;
 
     // Entidades e Sistema
     std::queue<float> spawnQueue;
@@ -32,6 +42,9 @@ private:
     void update(float dt);
     void handleCollisions();
     void render();
+    void renderGameOver();
+    void resetGame();
+    void centerText(sf::Text& text, float x, float y);
 
 public:
     Game();
