@@ -21,7 +21,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Tâche générée par le débogueur."
+            "detail": "gerado pelo debugador."
         }
     ],
     "version": "2.0.0"

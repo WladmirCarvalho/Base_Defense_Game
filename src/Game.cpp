@@ -3,9 +3,12 @@
 #include <cstdlib>
 #include <ctime>
 
-Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"), 
-               hero(400.f, 300.f), baseCore(400.f, 300.f), 
-               hpText(font), ammoText(font), 
+Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
+               hero(400.f, 300.f), baseCore(400.f, 300.f),
+               hpText(font), ammoText(font),
+               moveHintText(font), shootHintText(font),
+               gameOverText(font), finalTimeText(font),
+               replayButtonText(font), exitButtonText(font),
                timeSurvived(0.f), gameOver(false) {
     
     // Inicia a semente de aleatoriedade
@@ -37,6 +40,50 @@ Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
     ammoText.setCharacterSize(20);
     ammoText.setFillColor(sf::Color::Black);
     ammoText.setPosition(sf::Vector2f(650.f, 35.f));
+
+    moveHintText.setString("Aperte o botao direito do mouse para andar");
+    moveHintText.setCharacterSize(16);
+    moveHintText.setFillColor(sf::Color::Black);
+    moveHintText.setPosition(sf::Vector2f(10.f, 10.f));
+
+    shootHintText.setString("Aperte 'Q' para atirar");
+    shootHintText.setCharacterSize(16);
+    shootHintText.setFillColor(sf::Color::Black);
+    shootHintText.setPosition(sf::Vector2f(10.f, 32.f));
+
+    // Configuração da tela de Game Over
+    gameOverText.setString("GAME OVER");
+    gameOverText.setCharacterSize(48);
+    gameOverText.setFillColor(sf::Color::Red);
+    gameOverText.setStyle(sf::Text::Bold);
+    centerText(gameOverText, 400.f, 200.f);
+
+    finalTimeText.setCharacterSize(22);
+    finalTimeText.setFillColor(sf::Color::White);
+
+    replayButton.setSize(sf::Vector2f(180.f, 50.f));
+    replayButton.setFillColor(sf::Color(70, 130, 180));
+    replayButton.setPosition(sf::Vector2f(210.f, 350.f));
+
+    replayButtonText.setString("Jogar Novamente");
+    replayButtonText.setCharacterSize(18);
+    replayButtonText.setFillColor(sf::Color::White);
+    centerText(replayButtonText, 300.f, 375.f);
+
+    exitButton.setSize(sf::Vector2f(120.f, 50.f));
+    exitButton.setFillColor(sf::Color(180, 70, 70));
+    exitButton.setPosition(sf::Vector2f(470.f, 350.f));
+
+    exitButtonText.setString("Sair");
+    exitButtonText.setCharacterSize(18);
+    exitButtonText.setFillColor(sf::Color::White);
+    centerText(exitButtonText, 530.f, 375.f);
+}
+
+void Game::centerText(sf::Text& text, float x, float y) {
+    sf::FloatRect bounds = text.getLocalBounds();
+    text.setOrigin(sf::Vector2f(bounds.position.x + bounds.size.x / 2.f, bounds.position.y + bounds.size.y / 2.f));
+    text.setPosition(sf::Vector2f(x, y));
 }
 
 void Game::run() {
@@ -64,13 +111,24 @@ void Game::processEvents() {
                     hero.setTarget(window.mapPixelToCoords(sf::Mouse::getPosition(window)));
                 }
             }
-            
+
             if (const auto* keyPress = event->getIf<sf::Event::KeyPressed>()) {
                 if (keyPress->code == sf::Keyboard::Key::Q && hero.ammo > 0) {
                     sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
                     sf::Vector2f dir = normalizeVector(mousePos - hero.shape.getPosition());
                     projectiles.push_back(Projectile(hero.shape.getPosition(), dir, true));
                     hero.ammo--;
+                }
+            }
+        } else {
+            if (const auto* mouseBtn = event->getIf<sf::Event::MouseButtonPressed>()) {
+                if (mouseBtn->button == sf::Mouse::Button::Left) {
+                    sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                    if (replayButton.getGlobalBounds().contains(mousePos)) {
+                        resetGame();
+                    } else if (exitButton.getGlobalBounds().contains(mousePos)) {
+                        window.close();
+                    }
                 }
             }
         }
@@ -125,7 +183,25 @@ void Game::update(float dt) {
     if (baseCore.isDestroyed() || hero.hp <= 0) {
         std::cout << "Fim de Jogo! Tempo: " << timeSurvived << "s\n";
         gameOver = true;
+        finalTimeText.setString("Tempo sobrevivido: " + std::to_string(static_cast<int>(timeSurvived)) + "s");
+        centerText(finalTimeText, 400.f, 270.f);
     }
+}
+
+void Game::resetGame() {
+    hero = Hero(400.f, 300.f);
+    baseCore = Base(400.f, 300.f);
+    enemies.clear();
+    projectiles.clear();
+    ammoDrops.clear();
+
+    while (!spawnQueue.empty()) spawnQueue.pop();
+    spawnQueue.push(2.0f);
+    spawnQueue.push(4.0f);
+    spawnQueue.push(6.0f);
+
+    timeSurvived = 0.f;
+    gameOver = false;
 }
 
 void Game::handleCollisions() {
@@ -175,9 +251,26 @@ void Game::render() {
     for (auto& p : projectiles) window.draw(p.shape);
     for (auto& a : ammoDrops) window.draw(a.shape);
     
-    // Desenha o HUD 
+    // Desenha o HUD
     window.draw(hpText);
     window.draw(ammoText);
-    
+    window.draw(moveHintText);
+    window.draw(shootHintText);
+
+    if (gameOver) renderGameOver();
+
     window.display();
+}
+
+void Game::renderGameOver() {
+    sf::RectangleShape overlay(sf::Vector2f(800.f, 600.f));
+    overlay.setFillColor(sf::Color(0, 0, 0, 160));
+    window.draw(overlay);
+
+    window.draw(gameOverText);
+    window.draw(finalTimeText);
+    window.draw(replayButton);
+    window.draw(replayButtonText);
+    window.draw(exitButton);
+    window.draw(exitButtonText);
 }
