@@ -9,19 +9,19 @@ Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
                moveHintText(font), shootHintText(font),
                gameOverText(font), finalTimeText(font),
                replayButtonText(font), exitButtonText(font),
-               timeSurvived(0.f), gameOver(false) {
-    
+               titleText(font), leaderboardTitleText(font),
+               leaderboardText(font), startButtonText(font),
+               newRecordText(font), nameEntryPromptText(font),
+               nameEntryInputText(font),
+               leaderboard("leaderboard.txt"), lastScore(0),
+               timeSurvived(0.f), state(GameState::START) {
+
     // Inicia a semente de aleatoriedade
     srand(static_cast<unsigned int>(time(nullptr)));
 
-    // Configura os primeiros spawns
-    spawnQueue.push(2.0f);
-    spawnQueue.push(4.0f);
-    spawnQueue.push(6.0f);
-
     // Configuração da Música de fundo
     if (bgMusic.openFromFile("musica.ogg")) {
-        bgMusic.setLooping(true); 
+        bgMusic.setLooping(true);
         bgMusic.setVolume(50.f);
         bgMusic.play();
     } else {
@@ -32,7 +32,7 @@ Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
     if (!font.openFromFile("arial.ttf")) {
         std::cout << "Aviso: Fonte arial.ttf nao encontrada na pasta.\n";
     }
-    
+
     hpText.setCharacterSize(20);
     hpText.setFillColor(sf::Color::Black);
     hpText.setPosition(sf::Vector2f(650.f, 10.f));
@@ -78,6 +78,49 @@ Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
     exitButtonText.setCharacterSize(18);
     exitButtonText.setFillColor(sf::Color::White);
     centerText(exitButtonText, 530.f, 375.f);
+
+    // Configuração da tela inicial
+    titleText.setString("BASE DEFENSE");
+    titleText.setCharacterSize(40);
+    titleText.setStyle(sf::Text::Bold);
+    titleText.setFillColor(sf::Color::Black);
+    centerText(titleText, 400.f, 70.f);
+
+    leaderboardTitleText.setString("MELHORES PONTUACOES");
+    leaderboardTitleText.setCharacterSize(22);
+    leaderboardTitleText.setFillColor(sf::Color::Black);
+    centerText(leaderboardTitleText, 400.f, 150.f);
+
+    leaderboardText.setCharacterSize(20);
+    leaderboardText.setFillColor(sf::Color::Black);
+    refreshLeaderboardText();
+
+    startButton.setSize(sf::Vector2f(200.f, 55.f));
+    startButton.setFillColor(sf::Color(70, 130, 180));
+    startButton.setPosition(sf::Vector2f(300.f, 470.f));
+
+    startButtonText.setString("Iniciar");
+    startButtonText.setCharacterSize(22);
+    startButtonText.setFillColor(sf::Color::White);
+    centerText(startButtonText, 400.f, 497.f);
+
+    // Configuração da tela de novo recorde (estilo arcade)
+    newRecordText.setString("NOVO RECORDE!");
+    newRecordText.setCharacterSize(36);
+    newRecordText.setFillColor(sf::Color::Red);
+    newRecordText.setStyle(sf::Text::Bold);
+    centerText(newRecordText, 400.f, 150.f);
+
+    nameEntryPromptText.setString("Digite seu nome e aperte ENTER:");
+    nameEntryPromptText.setCharacterSize(20);
+    nameEntryPromptText.setFillColor(sf::Color::White);
+    centerText(nameEntryPromptText, 400.f, 330.f);
+
+    nameEntryInputText.setString("_");
+    nameEntryInputText.setCharacterSize(28);
+    nameEntryInputText.setFillColor(sf::Color::Yellow);
+    nameEntryInputText.setStyle(sf::Text::Bold);
+    centerText(nameEntryInputText, 400.f, 380.f);
 }
 
 void Game::centerText(sf::Text& text, float x, float y) {
@@ -86,12 +129,29 @@ void Game::centerText(sf::Text& text, float x, float y) {
     text.setPosition(sf::Vector2f(x, y));
 }
 
+void Game::refreshLeaderboardText() {
+    const auto& entries = leaderboard.getEntries();
+    if (entries.empty()) {
+        leaderboardText.setString("Nenhuma pontuacao registrada ainda.");
+    } else {
+        std::string text;
+        int rank = 1;
+        for (const auto& entry : entries) {
+            text += std::to_string(rank) + ". " + entry.name + " - " + std::to_string(entry.score) + "s\n";
+            rank++;
+        }
+        text.pop_back();
+        leaderboardText.setString(text);
+    }
+    centerText(leaderboardText, 400.f, 230.f);
+}
+
 void Game::run() {
     sf::Clock clock;
     while (window.isOpen()) {
         float dt = clock.restart().asSeconds();
         processEvents();
-        if (!gameOver) {
+        if (state == GameState::PLAYING) {
             update(dt);
             handleCollisions();
         }
@@ -104,8 +164,17 @@ void Game::processEvents() {
         if (event->is<sf::Event::Closed>()) {
             window.close();
         }
-            
-        if (!gameOver) {
+
+        if (state == GameState::START) {
+            if (const auto* mouseBtn = event->getIf<sf::Event::MouseButtonPressed>()) {
+                if (mouseBtn->button == sf::Mouse::Button::Left) {
+                    sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                    if (startButton.getGlobalBounds().contains(mousePos)) {
+                        resetGame();
+                    }
+                }
+            }
+        } else if (state == GameState::PLAYING) {
             if (const auto* mouseBtn = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseBtn->button == sf::Mouse::Button::Right) {
                     hero.setTarget(window.mapPixelToCoords(sf::Mouse::getPosition(window)));
@@ -120,7 +189,26 @@ void Game::processEvents() {
                     hero.ammo--;
                 }
             }
-        } else {
+        } else if (state == GameState::ENTER_NAME) {
+            if (const auto* textEntered = event->getIf<sf::Event::TextEntered>()) {
+                char32_t unicode = textEntered->unicode;
+                if (unicode == 8) {
+                    if (!playerNameInput.empty()) playerNameInput.pop_back();
+                } else if (unicode >= 32 && unicode < 127 && unicode != ' ' && playerNameInput.size() < 10) {
+                    playerNameInput += static_cast<char>(unicode);
+                }
+                nameEntryInputText.setString(playerNameInput.empty() ? "_" : playerNameInput + "_");
+                centerText(nameEntryInputText, 400.f, 380.f);
+            }
+
+            if (const auto* keyPress = event->getIf<sf::Event::KeyPressed>()) {
+                if (keyPress->code == sf::Keyboard::Key::Enter && !playerNameInput.empty()) {
+                    leaderboard.addScore(playerNameInput, lastScore);
+                    refreshLeaderboardText();
+                    state = GameState::GAME_OVER;
+                }
+            }
+        } else if (state == GameState::GAME_OVER) {
             if (const auto* mouseBtn = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseBtn->button == sf::Mouse::Button::Left) {
                     sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
@@ -144,8 +232,8 @@ void Game::update(float dt) {
     if (!spawnQueue.empty() && timeSurvived >= spawnQueue.front()) {
         float spawnX = 0.f;
         float spawnY = 0.f;
-        int side = rand() % 4; 
-        
+        int side = rand() % 4;
+
         if (side == 0) { spawnX = static_cast<float>(rand() % 800); spawnY = -20.f; }
         else if (side == 1) { spawnX = 820.f; spawnY = static_cast<float>(rand() % 600); }
         else if (side == 2) { spawnX = static_cast<float>(rand() % 800); spawnY = 620.f; }
@@ -153,7 +241,7 @@ void Game::update(float dt) {
 
         enemies.push_back(Enemy(sf::Vector2f(spawnX, spawnY)));
         spawnQueue.pop();
-        spawnQueue.push(timeSurvived + 3.0f); 
+        spawnQueue.push(timeSurvived + 3.0f);
     }
 
     for (auto& e : enemies) {
@@ -182,9 +270,19 @@ void Game::update(float dt) {
 
     if (baseCore.isDestroyed() || hero.hp <= 0) {
         std::cout << "Fim de Jogo! Tempo: " << timeSurvived << "s\n";
-        gameOver = true;
-        finalTimeText.setString("Tempo sobrevivido: " + std::to_string(static_cast<int>(timeSurvived)) + "s");
+
+        lastScore = static_cast<int>(timeSurvived);
+        finalTimeText.setString("Tempo sobrevivido: " + std::to_string(lastScore) + "s");
         centerText(finalTimeText, 400.f, 270.f);
+
+        if (leaderboard.qualifies(lastScore)) {
+            playerNameInput.clear();
+            nameEntryInputText.setString("_");
+            centerText(nameEntryInputText, 400.f, 380.f);
+            state = GameState::ENTER_NAME;
+        } else {
+            state = GameState::GAME_OVER;
+        }
     }
 }
 
@@ -201,7 +299,7 @@ void Game::resetGame() {
     spawnQueue.push(6.0f);
 
     timeSurvived = 0.f;
-    gameOver = false;
+    state = GameState::PLAYING;
 }
 
 void Game::handleCollisions() {
@@ -220,7 +318,7 @@ void Game::handleCollisions() {
                     break;
                 } else { ++eIt; }
             }
-        } else { 
+        } else {
             if (pIt->shape.getGlobalBounds().findIntersection(hero.shape.getGlobalBounds()).has_value()) {
                 hero.takeDamage(10);
                 projectileDestroyed = true;
@@ -244,22 +342,36 @@ void Game::handleCollisions() {
 }
 
 void Game::render() {
-    window.clear(sf::Color(220, 220, 220)); 
-    window.draw(baseCore.shape);
-    window.draw(hero.shape);
-    for (auto& e : enemies) window.draw(e.shape);
-    for (auto& p : projectiles) window.draw(p.shape);
-    for (auto& a : ammoDrops) window.draw(a.shape);
-    
-    // Desenha o HUD
-    window.draw(hpText);
-    window.draw(ammoText);
-    window.draw(moveHintText);
-    window.draw(shootHintText);
+    window.clear(sf::Color(220, 220, 220));
 
-    if (gameOver) renderGameOver();
+    if (state == GameState::START) {
+        renderStart();
+    } else {
+        window.draw(baseCore.shape);
+        window.draw(hero.shape);
+        for (auto& e : enemies) window.draw(e.shape);
+        for (auto& p : projectiles) window.draw(p.shape);
+        for (auto& a : ammoDrops) window.draw(a.shape);
+
+        // Desenha o HUD
+        window.draw(hpText);
+        window.draw(ammoText);
+        window.draw(moveHintText);
+        window.draw(shootHintText);
+
+        if (state == GameState::ENTER_NAME) renderEnterName();
+        else if (state == GameState::GAME_OVER) renderGameOver();
+    }
 
     window.display();
+}
+
+void Game::renderStart() {
+    window.draw(titleText);
+    window.draw(leaderboardTitleText);
+    window.draw(leaderboardText);
+    window.draw(startButton);
+    window.draw(startButtonText);
 }
 
 void Game::renderGameOver() {
@@ -273,4 +385,15 @@ void Game::renderGameOver() {
     window.draw(replayButtonText);
     window.draw(exitButton);
     window.draw(exitButtonText);
+}
+
+void Game::renderEnterName() {
+    sf::RectangleShape overlay(sf::Vector2f(800.f, 600.f));
+    overlay.setFillColor(sf::Color(0, 0, 0, 160));
+    window.draw(overlay);
+
+    window.draw(newRecordText);
+    window.draw(finalTimeText);
+    window.draw(nameEntryPromptText);
+    window.draw(nameEntryInputText);
 }
