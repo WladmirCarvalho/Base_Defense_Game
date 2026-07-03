@@ -471,6 +471,10 @@ void Game::resetGame() {
     enemies.clear();
     projectiles.clear();
     boosts.clear();
+    gameOver = false;
+    victory = false;
+    finalBossSpawned = false;
+    finalBossDefeated = false;
 
     while (!spawnQueue.empty()) spawnQueue.pop();
     spawnQueue.push(2.0f);
