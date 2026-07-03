@@ -45,6 +45,12 @@ O projeto passou por uma reestruturação arquitetural completa para integrar os
   * *Danger Border:* Borda vermelha pulsante translúcida sintonizada via função seno matemática durante a fase do chefe.
   * *Instruções de Jogo Integradas:* Textos guias posicionados nativamente e de forma exclusiva no Menu Inicial para manter a área de combate limpa.
 
+## 📸 Demonstração do Jogo
+
+Se tiver interesse em conferir o *Base Defense* em ação, o repositório conta com uma pasta dedicada contendo capturas de tela e vídeos demonstrativos da gameplay:
+
+* Confira os arquivos na pasta [`gameplay/`](./gameplay).
+
 ## ⌨️ Controles
 * **Botão Direito do Mouse:** Move o herói para o local clicado.
 * **Tecla Q:** Dispara um projétil na direção do cursor do mouse.
