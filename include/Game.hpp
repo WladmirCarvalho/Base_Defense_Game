@@ -7,7 +7,7 @@
 #include "Entities.hpp"
 #include "Leaderboard.hpp"
 
-enum class GameState { START, PLAYING, ENTER_NAME, GAME_OVER };
+enum class GameState { START, PLAYING, GAME_OVER };
 
 class Game {
 private:
@@ -31,6 +31,8 @@ private:
 
     // (Menu e Leaderboard) ---
     sf::Text moveHintText;
+    sf::RectangleShape hpSq, ammoSq, megaSq, pwrSq;
+    sf::Text hpDesc, ammoDesc, megaDesc, pwrDesc;
     sf::Text shootHintText;
     sf::Text objectiveHintText;
      // Tela de Game Over
@@ -49,6 +51,7 @@ private:
     sf::Text newRecordText;
     sf::Text nameEntryPromptText;
     sf::Text nameEntryInputText;
+    sf::Text top1Text;
     std::string playerNameInput;
     // Ranking
     Leaderboard leaderboard;

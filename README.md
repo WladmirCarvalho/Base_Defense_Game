@@ -23,7 +23,7 @@ Trata-se de um jogo de sobrevivência tático 2D *top-down* com dinâmica **Time
 
 O projeto passou por uma reestruturação arquitetural completa para integrar os sistemas de Menu Inicial, Leaderboard persistente e uma progressão de hordas com fim definitivo:
 
-* **Sistema de Jogo Baseado em Estados (State Machine):** Gerenciamento fluido entre as telas de `START` (Menu), `PLAYING` (Gameplay), `ENTER_NAME` (Inclusão de Recorde) e `GAME_OVER`, tratando transições de áudio e eventos periféricos de forma isolada.
+**Sistema de Jogo Baseado em Estados (State Machine):** Gerenciamento fluido com fluxo clássico de Arcade entre as telas de `START` (Menu com inserção de nome), `PLAYING` (Gameplay) e `GAME_OVER` (Ranking Final), tratando transições de áudio e eventos de forma isolada.
 * **Cronômetro Regressivo e Condição de Vitória:** A HUD exibe um timer em contagem regressiva sintonizado com a duração da trilha sonora (200 segundos). A vitória só é computada se o Final Boss for inteiramente destruído antes do relógio zerar.
 * **Três Condições Distintas de Defeat:** O encerramento abrupto da partida ocorre se:
   1. A integridade estrutural da Base Central chegar a zero.
@@ -39,7 +39,7 @@ O projeto passou por uma reestruturação arquitetural completa para integrar os
   * 💊 **Health (Cura - Magenta):** Recupera 50 pontos de vida do herói (respeitando o teto de 100 HP).
   * ⚡ **Power-Up (Sobrecarga - Ciano):** Ativa um estado especial temporário de 10 segundos onde os projéteis disparam com dano triplicado (de 20 para 60 de dano por acerto).
 * **Inteligência do Final Boss e Drops de Suporte:** O Boss surge aos 170s, bloqueia o spawn de hordas comuns e executa **teleportes táticos aleatórios** a cada 150 HP perdidos. Ele dropa suprimentos críticos (`MegaAmmo` e `Health`) em marcos específicos de sua vida para manter o dinamismo técnico do combate.
-* **Leaderboard Persistente em Ordem Ascendente:** O sistema lê e salva dados em arquivo de texto. Ajustado para o modelo *Time Attack*, o placar filtra exclusivamente as vitórias do jogador e **ordena de forma crescente** (menor tempo de conclusão no topo do ranking).
+* **Leaderboard Persistente Unificado (Top 10):** O sistema salva dados em arquivo de texto e exibe um ranking fixo de 10 posições. O algoritmo reordena jogadores misturando Vitórias (Win) e Derrotas (Lose) de forma inteligente: vitórias rápidas ficam no topo, derrotas resistentes ficam no meio, e o cobiçado *Top 1* é exibido em destaque na tela inicial.
 * **Polimento de UI e UX:**
   * *Contorno Dinâmico:* A espessura do muro da base reage fisicamente à sua vida restante.
   * *Danger Border:* Borda vermelha pulsante translúcida sintonizada via função seno matemática durante a fase do chefe.

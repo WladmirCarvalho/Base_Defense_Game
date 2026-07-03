@@ -7,13 +7,15 @@ Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
                hero(400.f, 300.f), baseCore(400.f, 300.f), 
                hpText(font), ammoText(font), timerText(font), 
                baseHpText(font), endText(font), creditsText(font), bossHpText(font),
-               moveHintText(font), shootHintText(font), objectiveHintText(font),
+               moveHintText(font), 
+               hpDesc(font), ammoDesc(font), megaDesc(font), pwrDesc(font), // <-- MOVIDOS PARA CÁ!
+               shootHintText(font), objectiveHintText(font),
                gameOverText(font), finalTimeText(font),
                replayButtonText(font), exitButtonText(font),
                titleText(font), leaderboardTitleText(font),
                leaderboardText(font), startButtonText(font),
                newRecordText(font), nameEntryPromptText(font),
-               nameEntryInputText(font),
+               nameEntryInputText(font), top1Text(font),
                leaderboard("leaderboard.txt"), lastScore(0),
                timeSurvived(0.f), gameOver(false), victory(false),
                finalBossSpawned(false), finalBossDefeated(false), totalEnemiesSpawned(0),
@@ -80,22 +82,44 @@ Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
     dangerBorder.setOutlineThickness(-30.f);
     dangerBorder.setOutlineColor(sf::Color::Transparent); 
 
-    // --- Instruções na Tela Inicial) ---
+    // --- Instruções da Tela Inicial ---
     moveHintText.setString("Botao Direito do Mouse: Move o heroi para o local clicado.");
     moveHintText.setCharacterSize(18);
-    moveHintText.setFillColor(sf::Color(80, 80, 80)); // Um cinza elegante
-    centerText(moveHintText, 400.f, 380.f); // Centralizado no menu
+    moveHintText.setFillColor(sf::Color(80, 80, 80)); 
+    centerText(moveHintText, 400.f, 370.f); 
 
     shootHintText.setString("Tecla 'Q': Dispara Projetil na direcao do cursor do mouse");
     shootHintText.setCharacterSize(18);
     shootHintText.setFillColor(sf::Color(80, 80, 80));
-    centerText(shootHintText, 400.f, 410.f);
+    centerText(shootHintText, 400.f, 400.f);
 
     objectiveHintText.setString("Objetivo: Elimine o Final Boss antes que o tempo acabe!");
     objectiveHintText.setCharacterSize(18);
-    objectiveHintText.setFillColor(sf::Color::Red); // Vermelho para dar urgência
-    objectiveHintText.setStyle(sf::Text::Bold);
-    centerText(objectiveHintText, 400.f, 440.f);
+    objectiveHintText.setFillColor(sf::Color::Red);
+    objectiveHintText.setStyle(sf::Text::Regular);
+    centerText(objectiveHintText, 400.f, 430.f);
+
+    float startY = 470.f;
+    
+    hpSq.setSize({15.f, 15.f}); hpSq.setFillColor(sf::Color::Magenta);
+    hpSq.setPosition({140.f, startY});
+    hpDesc.setFont(font); hpDesc.setString("Health"); hpDesc.setCharacterSize(16); 
+    hpDesc.setFillColor(sf::Color::Black); hpDesc.setPosition({160.f, startY});
+
+    ammoSq.setSize({15.f, 15.f}); ammoSq.setFillColor(sf::Color(0, 255, 0));
+    ammoSq.setPosition({250.f, startY});
+    ammoDesc.setFont(font); ammoDesc.setString("Ammo"); ammoDesc.setCharacterSize(16); 
+    ammoDesc.setFillColor(sf::Color::Black); ammoDesc.setPosition({270.f, startY});
+
+    megaSq.setSize({15.f, 15.f}); megaSq.setFillColor(sf::Color(255, 255, 0));
+    megaSq.setPosition({350.f, startY});
+    megaDesc.setFont(font); megaDesc.setString("MegaAmmo"); megaDesc.setCharacterSize(16); 
+    megaDesc.setFillColor(sf::Color::Black); megaDesc.setPosition({370.f, startY});
+
+    pwrSq.setSize({15.f, 15.f}); pwrSq.setFillColor(sf::Color::Cyan);
+    pwrSq.setPosition({500.f, startY});
+    pwrDesc.setFont(font); pwrDesc.setString("PowerUp"); pwrDesc.setCharacterSize(16); 
+    pwrDesc.setFillColor(sf::Color::Black); pwrDesc.setPosition({520.f, startY});
 
     // Configuração da tela de Game Over
     gameOverText.setString("GAME OVER");
@@ -132,13 +156,15 @@ Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
     titleText.setFillColor(sf::Color::Black);
     centerText(titleText, 400.f, 70.f);
 
-    leaderboardTitleText.setString("MELHORES PONTUACOES");
-    leaderboardTitleText.setCharacterSize(22);
-    leaderboardTitleText.setFillColor(sf::Color::Black);
-    centerText(leaderboardTitleText, 400.f, 150.f);
+    leaderboardTitleText.setString("RANKING");
+    leaderboardTitleText.setCharacterSize(26);
+    leaderboardTitleText.setFillColor(sf::Color::White);
+    centerText(leaderboardTitleText, 400.f, 210.f);
 
     leaderboardText.setCharacterSize(20);
-    leaderboardText.setFillColor(sf::Color::Black);
+    leaderboardText.setFillColor(sf::Color::White);
+    top1Text.setCharacterSize(22);
+    top1Text.setFillColor(sf::Color::Black);
     refreshLeaderboardText();
 
     startButton.setSize(sf::Vector2f(200.f, 55.f));
@@ -159,7 +185,7 @@ Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
 
     nameEntryPromptText.setString("Digite seu nome e aperte ENTER:");
     nameEntryPromptText.setCharacterSize(20);
-    nameEntryPromptText.setFillColor(sf::Color::White);
+    nameEntryPromptText.setFillColor(sf::Color::Black);
     centerText(nameEntryPromptText, 400.f, 330.f);
 
     nameEntryInputText.setString("_");
@@ -177,19 +203,42 @@ void Game::centerText(sf::Text& text, float x, float y) {
 
 void Game::refreshLeaderboardText() {
     const auto& entries = leaderboard.getEntries();
-    if (entries.empty()) {
-        leaderboardText.setString("Nenhuma pontuacao registrada ainda.");
-    } else {
-        std::string text;
-        int rank = 1;
-        for (const auto& entry : entries) {
-            text += std::to_string(rank) + ". " + entry.name + " - " + std::to_string(entry.score) + "s\n";
-            rank++;
+    std::string text;
+
+    // Loop fixo de 1 a 10 para criar a estrutura do Arcade
+    for (int i = 0; i < 10; ++i) {
+        // Coloca o número do ranking (ex: "01. ", "02. "... "10. ")
+        if (i < 9) {
+            text += "0" + std::to_string(i + 1) + ". ";
+        } else {
+            text += std::to_string(i + 1) + ". "; // O 10 entra normal
         }
-        text.pop_back();
-        leaderboardText.setString(text);
+        
+        // Se já tivermos um jogador para essa posição, insere os dados
+        if (i < static_cast<int>(entries.size())) {
+            text += entries[i].name + (entries[i].isWin ? " [WIN] - " : " [LOSE] - ") + std::to_string(entries[i].score) + "s";
+        } 
+        // Se não tiver jogador ainda, insere um espaço em branco
+        else {
+            text += "---";
+        }
+        
+        // Adiciona a quebra de linha
+        if (i < 9) text += "\n"; 
     }
-    centerText(leaderboardText, 400.f, 230.f);
+
+    leaderboardText.setString(text);
+
+    // Lógica isolada para o Top 1 da Tela Inicial
+    if (!entries.empty()) {
+        top1Text.setString("Top 1: " + entries[0].name + (entries[0].isWin ? " [WIN] " : " [LOSE] ") + std::to_string(entries[0].score) + "s");
+    } else {
+        top1Text.setString("Top 1: Nenhum");
+    }
+    
+    // Posições para as 10 linhas
+    centerText(top1Text, 400.f, 150.f); 
+    centerText(leaderboardText, 400.f, 350.f); 
 }
 
 void Game::run() {
@@ -212,15 +261,36 @@ void Game::processEvents() {
         }
 
         if (state == GameState::START) {
+            // Lógica de digitar o nome no menu inicial
+            if (const auto* textEntered = event->getIf<sf::Event::TextEntered>()) {
+                char32_t unicode = textEntered->unicode;
+                if (unicode == 8) { // Backspace
+                    if (!playerNameInput.empty()) playerNameInput.pop_back();
+                } else if (unicode >= 32 && unicode < 127 && unicode != ' ' && playerNameInput.size() < 10) {
+                    playerNameInput += static_cast<char>(unicode);
+                }
+                nameEntryInputText.setString(playerNameInput.empty() ? "_" : playerNameInput + "_");
+                centerText(nameEntryInputText, 400.f, 220.f);
+            }
+
+            // Iniciar pelo clique do mouse (só se tiver digitado o nome)
             if (const auto* mouseBtn = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseBtn->button == sf::Mouse::Button::Left) {
                     sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-                    if (startButton.getGlobalBounds().contains(mousePos)) {
+                    if (startButton.getGlobalBounds().contains(mousePos) && !playerNameInput.empty()) {
                         resetGame();
                     }
                 }
             }
-        } else if (state == GameState::PLAYING) {
+            
+            // Iniciar apertando Enter (só se tiver digitado o nome)
+            if (const auto* keyPress = event->getIf<sf::Event::KeyPressed>()) {
+                if (keyPress->code == sf::Keyboard::Key::Enter && !playerNameInput.empty()) {
+                    resetGame();
+                }
+            }
+        } 
+        else if (state == GameState::PLAYING) {
             if (const auto* mouseBtn = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseBtn->button == sf::Mouse::Button::Right) {
                     hero.setTarget(window.mapPixelToCoords(sf::Mouse::getPosition(window)));
@@ -236,26 +306,8 @@ void Game::processEvents() {
                     hero.ammo--;
                 }
             }
-        } else if (state == GameState::ENTER_NAME) {
-            if (const auto* textEntered = event->getIf<sf::Event::TextEntered>()) {
-                char32_t unicode = textEntered->unicode;
-                if (unicode == 8) {
-                    if (!playerNameInput.empty()) playerNameInput.pop_back();
-                } else if (unicode >= 32 && unicode < 127 && unicode != ' ' && playerNameInput.size() < 10) {
-                    playerNameInput += static_cast<char>(unicode);
-                }
-                nameEntryInputText.setString(playerNameInput.empty() ? "_" : playerNameInput + "_");
-                centerText(nameEntryInputText, 400.f, 380.f);
-            }
-
-            if (const auto* keyPress = event->getIf<sf::Event::KeyPressed>()) {
-                if (keyPress->code == sf::Keyboard::Key::Enter && !playerNameInput.empty()) {
-                    leaderboard.addScore(playerNameInput, lastScore);
-                    refreshLeaderboardText();
-                    state = GameState::GAME_OVER;
-                }
-            }
-        } else if (state == GameState::GAME_OVER) {
+        } 
+        else if (state == GameState::GAME_OVER) {
             if (const auto* mouseBtn = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseBtn->button == sf::Mouse::Button::Left) {
                     sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
@@ -437,8 +489,8 @@ void Game::update(float dt) {
         
         // Define se foi Vitória ou Derrota na tela final
         if (victory) {
-            gameOverText.setString("YOU WIN!");
-            gameOverText.setFillColor(sf::Color::Cyan); 
+            gameOverText.setString("VITORIA!");
+            gameOverText.setFillColor(sf::Color::Blue); 
             finalTimeText.setString("Tempo de conclusao: " + std::to_string(lastScore) + "s");
         } else {
             gameOverText.setString("GAME OVER");
@@ -446,22 +498,15 @@ void Game::update(float dt) {
             finalTimeText.setString("Tempo sobrevivido: " + std::to_string(lastScore) + "s");
         }
         
-        centerText(gameOverText, 400.f, 200.f); // Re-centraliza a palavra
-        centerText(finalTimeText, 400.f, 270.f);
+        // Caixa no topo
+        centerText(gameOverText, 400.f, 80.f); 
+        centerText(finalTimeText, 400.f, 150.f);
 
-        // SÓ entra no Scoreboard se VENCEU o jogo e tem pontuação
-        if (victory && leaderboard.qualifies(lastScore)) {
-            playerNameInput.clear();
-            nameEntryInputText.setString("_");
-            centerText(nameEntryInputText, 400.f, 380.f);
-            
-            newRecordText.setCharacterSize(24);
-            centerText(newRecordText, 400.f, 235.f);
+        // Envia o score automaticamente pro Placar e atualiza o texto
+        leaderboard.addScore(playerNameInput, lastScore, victory);
+        refreshLeaderboardText();
 
-            state = GameState::ENTER_NAME;
-        } else {
-            state = GameState::GAME_OVER;
-        }
+        state = GameState::GAME_OVER; // Pula direto pra tela final
     }
 }
 
@@ -593,7 +638,7 @@ void Game::render() {
             window.draw(boost.shape);
         }
         
-        // Desenha o HUD de Gameplay (SEM as instruções para não poluir!)
+        // Desenha o HUD de Gameplay
         window.draw(baseHpText);
         window.draw(hpText);
         window.draw(ammoText);
@@ -604,8 +649,9 @@ void Game::render() {
             window.draw(creditsText);
         }
         
-        if (state == GameState::ENTER_NAME) renderEnterName();
-        else if (state == GameState::GAME_OVER) renderGameOver();
+        if (state == GameState::GAME_OVER) {
+            renderGameOver();
+        }
     }
 
     window.display();
@@ -613,56 +659,63 @@ void Game::render() {
 
 void Game::renderStart() {
     window.draw(titleText);
-    window.draw(leaderboardTitleText);
-    window.draw(leaderboardText);
+    
+    // Top 1 e Digitação
+    window.draw(top1Text);
+    centerText(nameEntryPromptText, 400.f, 190.f);
+    window.draw(nameEntryPromptText);
+    window.draw(nameEntryInputText);
+
+    // Botão e Textos
+    startButton.setPosition(sf::Vector2f(300.f, 280.f));
+    centerText(startButtonText, 400.f, 307.f);
     window.draw(startButton);
     window.draw(startButtonText);
+    
+    // Instruções (Mantém as posições que ajustamos antes)
     window.draw(moveHintText);
     window.draw(shootHintText);
-    window.draw(objectiveHintText);
+    window.draw(objectiveHintText); 
+    
+    // Boosts
+    window.draw(hpSq); window.draw(hpDesc);
+    window.draw(ammoSq); window.draw(ammoDesc);
+    window.draw(megaSq); window.draw(megaDesc);
+    window.draw(pwrSq); window.draw(pwrDesc);
 }
 
 void Game::renderGameOver() {
     sf::RectangleShape overlay(sf::Vector2f(800.f, 600.f));
-    overlay.setFillColor(sf::Color(0, 0, 0, 160));
+    overlay.setFillColor(sf::Color(0, 0, 0, 180)); // Fundo escurecido
     window.draw(overlay);
 
-    // --- NOVO: A caixinha semi-transparente de destaque ---
+    // Caixa de destaque no topo
     sf::RectangleShape box(sf::Vector2f(400.f, 80.f));
-    box.setFillColor(sf::Color(0, 0, 0, 200)); // Fundo preto escuro
-    box.setOutlineColor(gameOverText.getFillColor()); // Puxa a cor do texto (Azul ou Vermelho!)
+    box.setFillColor(sf::Color(0, 0, 0, 200));
+    box.setOutlineColor(gameOverText.getFillColor());
     box.setOutlineThickness(2.f);
     box.setOrigin(sf::Vector2f(200.f, 40.f));
-    box.setPosition(sf::Vector2f(400.f, 200.f));
+    box.setPosition(sf::Vector2f(400.f, 80.f));
+    
     window.draw(box);
-
     window.draw(gameOverText);
     window.draw(finalTimeText);
+
+    // O Placar Centralizado
+    window.draw(leaderboardTitleText);
+    window.draw(leaderboardText);
+
+    // Botões no fim da tela
+    replayButton.setPosition(sf::Vector2f(210.f, 500.f));
+    centerText(replayButtonText, 300.f, 525.f);
+    
+    exitButton.setPosition(sf::Vector2f(470.f, 500.f));
+    centerText(exitButtonText, 530.f, 525.f);
+
     window.draw(replayButton);
     window.draw(replayButtonText);
     window.draw(exitButton);
     window.draw(exitButtonText);
 }
 
-void Game::renderEnterName() {
-    sf::RectangleShape overlay(sf::Vector2f(800.f, 600.f));
-    overlay.setFillColor(sf::Color(0, 0, 0, 160));
-    window.draw(overlay);
 
-    // --- A caixinha semi-transparente de destaque ---
-    sf::RectangleShape box(sf::Vector2f(400.f, 80.f));
-    box.setFillColor(sf::Color(0, 0, 0, 200));
-    box.setOutlineColor(gameOverText.getFillColor());
-    box.setOutlineThickness(2.f);
-    box.setOrigin(sf::Vector2f(200.f, 40.f));
-    box.setPosition(sf::Vector2f(400.f, 200.f));
-    window.draw(box);
-
-    // Desenha a palavra YOU WIN ou GAME OVER por cima da caixa
-    window.draw(gameOverText); 
-    
-    window.draw(newRecordText);
-    window.draw(finalTimeText);
-    window.draw(nameEntryPromptText);
-    window.draw(nameEntryInputText);
-}
