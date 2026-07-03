@@ -3,3 +3,4 @@ obj/
 *.exe
 leaderboard.txt
 base_defense
+*.o
