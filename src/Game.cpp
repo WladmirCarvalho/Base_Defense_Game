@@ -411,6 +411,7 @@ void Game::update(float dt) {
         // Verifica se a animação de morte do chefe acabou
         if (eIt->isDying && eIt->deathTimer <= 0.f) {
             finalBossDefeated = true;
+            victory = true; // <-- GATILHO DE TELA DE VITÓRIA
             bossHpText.setString(""); 
             dangerBorder.setOutlineColor(sf::Color::Transparent); 
             eIt = enemies.erase(eIt); // Apaga o corpo definitivamente
@@ -574,7 +575,6 @@ void Game::handleCollisions() {
                             if (!eIt->isDying) {
                                 eIt->isDying = true; // Inicia a animação
                                 eIt->hp = 1;         // Trava a vida
-                                victory = true;     // Gatilho de vitória (texto YOU WIN!)
                             }
                             ++eIt; // Apenas avança, não apaga ainda!
                         } 
