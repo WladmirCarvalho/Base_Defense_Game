@@ -27,13 +27,15 @@ void Leaderboard::save() const {
 
 bool Leaderboard::qualifies(int score) const {
     if (entries.size() < MAX_ENTRIES) return true;
-    return score > entries.back().score;
+    // Retorna true apenas se o tempo for MENOR que o último colocado
+    return score < entries.back().score; 
 }
 
 void Leaderboard::addScore(const std::string& name, int score) {
     entries.push_back({name, score});
+    // Ordena colocando os MENORES tempos (mais rápidos) no topo
     std::sort(entries.begin(), entries.end(), [](const ScoreEntry& a, const ScoreEntry& b) {
-        return a.score > b.score;
+        return a.score < b.score; 
     });
     if (entries.size() > MAX_ENTRIES) entries.resize(MAX_ENTRIES);
     save();

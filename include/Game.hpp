@@ -11,41 +11,45 @@ enum class GameState { START, PLAYING, ENTER_NAME, GAME_OVER };
 
 class Game {
 private:
+    sf::Font font;
     sf::RenderWindow window;
     Hero hero;
     Base baseCore;
 
     // Áudio
     sf::Music bgMusic;
+    sf::Music menuMusic;
 
     // HUD
-    sf::Font font;
     sf::Text hpText;
     sf::Text ammoText;
+    sf::Text timerText;
+    sf::Text baseHpText;
+    sf::Text endText;
+    sf::Text creditsText;
+    sf::Text bossHpText;
+
+    // (Menu e Leaderboard) ---
     sf::Text moveHintText;
     sf::Text shootHintText;
-
-    // Tela de Game Over
+    sf::Text objectiveHintText;
+     // Tela de Game Over
     sf::Text gameOverText;
     sf::Text finalTimeText;
     sf::RectangleShape replayButton;
     sf::Text replayButtonText;
     sf::RectangleShape exitButton;
     sf::Text exitButtonText;
-
     // Tela inicial
     sf::Text titleText;
     sf::Text leaderboardTitleText;
     sf::Text leaderboardText;
     sf::RectangleShape startButton;
     sf::Text startButtonText;
-
-    // Tela de novo recorde (estilo arcade)
     sf::Text newRecordText;
     sf::Text nameEntryPromptText;
     sf::Text nameEntryInputText;
     std::string playerNameInput;
-
     // Ranking
     Leaderboard leaderboard;
     int lastScore;
@@ -54,10 +58,19 @@ private:
     std::queue<float> spawnQueue;
     std::list<Enemy> enemies;
     std::list<Projectile> projectiles;
-    std::list<AmmoDrop> ammoDrops;
+    std::list<Boost> boosts;
+
+    sf::RectangleShape dangerBorder;
 
     float timeSurvived;
-    GameState state;
+    float maxMusicTime;
+    bool gameOver;
+    bool victory;
+    bool finalBossSpawned;
+    bool finalBossDefeated;
+    int totalEnemiesSpawned;
+    
+    GameState state; // Estado do Menu
 
     void processEvents();
     void update(float dt);

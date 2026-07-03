@@ -3,10 +3,11 @@
 #include <cstdlib>
 #include <ctime>
 
-Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
-               hero(400.f, 300.f), baseCore(400.f, 300.f),
-               hpText(font), ammoText(font),
-               moveHintText(font), shootHintText(font),
+Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"), 
+               hero(400.f, 300.f), baseCore(400.f, 300.f), 
+               hpText(font), ammoText(font), timerText(font), 
+               baseHpText(font), endText(font), creditsText(font), bossHpText(font),
+               moveHintText(font), shootHintText(font), objectiveHintText(font),
                gameOverText(font), finalTimeText(font),
                replayButtonText(font), exitButtonText(font),
                titleText(font), leaderboardTitleText(font),
@@ -14,42 +15,87 @@ Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
                newRecordText(font), nameEntryPromptText(font),
                nameEntryInputText(font),
                leaderboard("leaderboard.txt"), lastScore(0),
-               timeSurvived(0.f), state(GameState::START) {
+               timeSurvived(0.f), gameOver(false), victory(false),
+               finalBossSpawned(false), finalBossDefeated(false), totalEnemiesSpawned(0),
+               state(GameState::START) {
 
     // Inicia a semente de aleatoriedade
     srand(static_cast<unsigned int>(time(nullptr)));
 
     // Configuração da Música de fundo
     if (bgMusic.openFromFile("musica.ogg")) {
-        bgMusic.setLooping(true);
+
+        bgMusic.setLooping(false);
         bgMusic.setVolume(50.f);
-        bgMusic.play();
+        maxMusicTime = bgMusic.getDuration().asSeconds();
     } else {
         std::cout << "Aviso: Arquivo de musica nao encontrado.\n";
+        maxMusicTime = 120.f; // Tempo de segurança se a música der erro
+    }
+
+    // Configuração da Música do menu
+    if (menuMusic.openFromFile("menu.wav")) {
+        menuMusic.setLooping(true);
+        menuMusic.setVolume(40.f);
+        menuMusic.play();
     }
 
     // Configuração do HUD (Textos na tela)
     if (!font.openFromFile("arial.ttf")) {
         std::cout << "Aviso: Fonte arial.ttf nao encontrada na pasta.\n";
     }
-
-    hpText.setCharacterSize(20);
+    hpText.setCharacterSize(26);
     hpText.setFillColor(sf::Color::Black);
-    hpText.setPosition(sf::Vector2f(650.f, 10.f));
+    hpText.setPosition(sf::Vector2f(600.f, 10.f));
 
-    ammoText.setCharacterSize(20);
+    ammoText.setCharacterSize(26);
     ammoText.setFillColor(sf::Color::Black);
-    ammoText.setPosition(sf::Vector2f(650.f, 35.f));
+    ammoText.setPosition(sf::Vector2f(600.f, 45.f));
 
-    moveHintText.setString("Aperte o botao direito do mouse para andar");
-    moveHintText.setCharacterSize(16);
-    moveHintText.setFillColor(sf::Color::Black);
-    moveHintText.setPosition(sf::Vector2f(10.f, 10.f));
+    baseHpText.setCharacterSize(26);
+    baseHpText.setFillColor(sf::Color::Black);
+    baseHpText.setPosition(sf::Vector2f(600.f, 80.f));
 
-    shootHintText.setString("Aperte 'Q' para atirar");
-    shootHintText.setCharacterSize(16);
-    shootHintText.setFillColor(sf::Color::Black);
-    shootHintText.setPosition(sf::Vector2f(10.f, 32.f));
+    bossHpText.setCharacterSize(26);
+    bossHpText.setFillColor(sf::Color::Red);
+    bossHpText.setPosition(sf::Vector2f(600.f, 115.f));
+    bossHpText.setString("");
+
+    timerText.setCharacterSize(24);
+    timerText.setFillColor(sf::Color::Black);
+    timerText.setPosition(sf::Vector2f(350.f, 10.f));
+
+    endText.setCharacterSize(50);
+    endText.setFillColor(sf::Color::Black);
+    endText.setString(""); 
+
+    creditsText.setCharacterSize(24);
+    creditsText.setFillColor(sf::Color::Black);
+    creditsText.setString("Desenvolvido por:\nMarcos Gomes\nSibelle Galina\nWladmir Carvalho\n\nObrigado por jogar!");
+    creditsText.setPosition(sf::Vector2f(20.f, 650.f)); 
+
+    dangerBorder.setSize(sf::Vector2f(800.f, 600.f));
+    dangerBorder.setPosition(sf::Vector2f(0.f, 0.f));
+    dangerBorder.setFillColor(sf::Color::Transparent); 
+    dangerBorder.setOutlineThickness(-30.f);
+    dangerBorder.setOutlineColor(sf::Color::Transparent); 
+
+    // --- Instruções na Tela Inicial) ---
+    moveHintText.setString("Botao Direito do Mouse: Move o heroi para o local clicado.");
+    moveHintText.setCharacterSize(18);
+    moveHintText.setFillColor(sf::Color(80, 80, 80)); // Um cinza elegante
+    centerText(moveHintText, 400.f, 380.f); // Centralizado no menu
+
+    shootHintText.setString("Tecla 'Q': Dispara Projetil na direcao do cursor do mouse");
+    shootHintText.setCharacterSize(18);
+    shootHintText.setFillColor(sf::Color(80, 80, 80));
+    centerText(shootHintText, 400.f, 410.f);
+
+    objectiveHintText.setString("Objetivo: Elimine o Final Boss antes que o tempo acabe!");
+    objectiveHintText.setCharacterSize(18);
+    objectiveHintText.setFillColor(sf::Color::Red); // Vermelho para dar urgência
+    objectiveHintText.setStyle(sf::Text::Bold);
+    centerText(objectiveHintText, 400.f, 440.f);
 
     // Configuração da tela de Game Over
     gameOverText.setString("GAME OVER");
@@ -104,7 +150,7 @@ Game::Game() : window(sf::VideoMode({800, 600}), "Base Defense"),
     startButtonText.setFillColor(sf::Color::White);
     centerText(startButtonText, 400.f, 497.f);
 
-    // Configuração da tela de novo recorde (estilo arcade)
+    // Configuração da tela de novo recorde
     newRecordText.setString("NOVO RECORDE!");
     newRecordText.setCharacterSize(36);
     newRecordText.setFillColor(sf::Color::Red);
@@ -185,7 +231,8 @@ void Game::processEvents() {
                 if (keyPress->code == sf::Keyboard::Key::Q && hero.ammo > 0) {
                     sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
                     sf::Vector2f dir = normalizeVector(mousePos - hero.shape.getPosition());
-                    projectiles.push_back(Projectile(hero.shape.getPosition(), dir, true));
+                    bool powered = hero.hasPowerUp;
+                    projectiles.push_back(Projectile(hero.shape.getPosition(), dir, true, powered));
                     hero.ammo--;
                 }
             }
@@ -228,27 +275,131 @@ void Game::update(float dt) {
     hero.update(dt);
     baseCore.update(dt);
 
-    // Sistema de Spawn nas bordas
-    if (!spawnQueue.empty() && timeSurvived >= spawnQueue.front()) {
-        float spawnX = 0.f;
-        float spawnY = 0.f;
-        int side = rand() % 4;
+    // GERENCIAMENTO DE SPAWN
+    bool isFinalPhase = (timeSurvived >= (maxMusicTime - 33.f));
 
-        if (side == 0) { spawnX = static_cast<float>(rand() % 800); spawnY = -20.f; }
-        else if (side == 1) { spawnX = 820.f; spawnY = static_cast<float>(rand() % 600); }
-        else if (side == 2) { spawnX = static_cast<float>(rand() % 800); spawnY = 620.f; }
-        else { spawnX = -20.f; spawnY = static_cast<float>(rand() % 600); }
+    if (isFinalPhase) {
+        if (!finalBossSpawned) {
+            enemies.push_back(Enemy(sf::Vector2f(400.f, -50.f), EnemyType::FinalBoss));
+            finalBossSpawned = true;
+        }
+    } 
+    else {
+        // LÓGICA DE SPAWN (Progressão de Dificuldade)
+        // Estágio 1 (Até 50 segundos)
+        int maxEnemies = 10; 
+        float spawnRate = 4.0f; // Tempo entre os nascimentos
+        int enemiesToSpawn = 1;
 
-        enemies.push_back(Enemy(sf::Vector2f(spawnX, spawnY)));
-        spawnQueue.pop();
-        spawnQueue.push(timeSurvived + 3.0f);
+        // Estágio 2 (Aos 50 segundos)
+        if (timeSurvived >= 50.f && timeSurvived < 110.f) {
+            maxEnemies = 12; 
+            spawnRate = 3.5f;
+        } 
+        // Estágio 3 (Aos 110 segundos até o Boss)
+        else if (timeSurvived >= 110.f) {
+            maxEnemies = 15; 
+            spawnRate = 3.0f; // Nascem mais rápido
+            enemiesToSpawn = 2; // Começam a nascer em duplas!
+        }
+
+        if (!spawnQueue.empty() && timeSurvived >= spawnQueue.front()) {
+            if (static_cast<int>(enemies.size()) < maxEnemies) {
+
+                for (int i = 0; i < enemiesToSpawn; ++i) {
+                    float spawnX = 0.f; float spawnY = 0.f;
+                    int side = rand() % 4; 
+                    if (side == 0) { spawnX = static_cast<float>(rand() % 800); spawnY = -20.f; }
+                    else if (side == 1) { spawnX = 820.f; spawnY = static_cast<float>(rand() % 600); }
+                    else if (side == 2) { spawnX = static_cast<float>(rand() % 800); spawnY = 620.f; }
+                    else { spawnX = -20.f; spawnY = static_cast<float>(rand() % 600); }
+
+                    totalEnemiesSpawned++; 
+
+                    EnemyType typeToSpawn = EnemyType::Common;
+                    if (totalEnemiesSpawned % 20 == 0) { 
+                        typeToSpawn = EnemyType::MiniBoss;
+                    }
+
+                    enemies.push_back(Enemy(sf::Vector2f(spawnX, spawnY), typeToSpawn));
+                }
+            }
+            spawnQueue.pop();
+            spawnQueue.push(timeSurvived + spawnRate); // Usa a taxa dinâmica
+        }
+    } // AQUI TERMINA O BLOCO ELSE DO SPAWN
+
+    // --- LÓGICA DO FINAL BOSS NA TELA ---
+    if (finalBossSpawned && !finalBossDefeated) {
+        bool bossFound = false;
+        for (auto& e : enemies) {
+            if (e.type == EnemyType::FinalBoss) {
+                bossFound = true;
+                bossHpText.setString("Boss: " + std::to_string(e.hp));
+                break;
+            }
+        }
+        
+        if (!bossFound) {
+            finalBossDefeated = true;
+            bossHpText.setString(""); // Apaga o texto quando ele morre
+            dangerBorder.setOutlineColor(sf::Color::Transparent); // Apaga a borda
+        } else {
+            // Efeito de piscar a borda vermelha (usando a função seno do tempo)
+            // Oscila a transparência do vermelho entre 80 e 180 (sensação de sirene)
+            int alpha = 130 + static_cast<int>(50.0f * std::sin(timeSurvived * 5.0f));
+            dangerBorder.setOutlineColor(sf::Color(255, 0, 0, alpha));
+        }
     }
 
-    for (auto& e : enemies) {
-        e.update(dt, baseCore.shape.getPosition());
-        if (e.canShoot(dt)) {
-            sf::Vector2f dir = normalizeVector(hero.shape.getPosition() - e.shape.getPosition());
-            projectiles.push_back(Projectile(e.shape.getPosition(), dir, false));
+    // Atualiza os inimigos existentes
+    for (auto eIt = enemies.begin(); eIt != enemies.end(); ) {
+        eIt->update(dt, baseCore.shape.getPosition());
+        
+        // Verifica se a animação de morte do chefe acabou
+        if (eIt->isDying && eIt->deathTimer <= 0.f) {
+            finalBossDefeated = true;
+            bossHpText.setString(""); 
+            dangerBorder.setOutlineColor(sf::Color::Transparent); 
+            eIt = enemies.erase(eIt); // Apaga o corpo definitivamente
+        } 
+        else {
+            if (eIt->canShoot(dt)) {
+                sf::Vector2f dir = normalizeVector(hero.shape.getPosition() - eIt->shape.getPosition());
+                projectiles.push_back(Projectile(eIt->shape.getPosition(), dir, false));
+            }
+            ++eIt;
+        }
+    }
+
+    for (auto it = boosts.begin(); it != boosts.end(); ) {
+        it->update(dt);
+
+        if (hero.shape.getGlobalBounds().findIntersection(it->shape.getGlobalBounds()).has_value()) {
+            
+            if (it->type == BoostType::NormalAmmo) {
+                hero.ammo += 5;
+                if (hero.ammo > hero.maxAmmo) hero.ammo = hero.maxAmmo; // LIMITADOR
+            }
+            else if (it->type == BoostType::Health) {
+                hero.hp += 50; 
+                if (hero.hp > 100) hero.hp = 100;
+            } 
+            else if (it->type == BoostType::MegaAmmo) {
+                hero.ammo += 20; 
+                if (hero.ammo > hero.maxAmmo) hero.ammo = hero.maxAmmo; // LIMITADOR
+            }
+            else if (it->type == BoostType::PowerUp) {
+                hero.hasPowerUp = true;
+                hero.powerUpTimer = 10.0f;
+            }
+            
+            it = boosts.erase(it);
+        }
+        else if (it->lifetime <= 0.f) {
+            it = boosts.erase(it);
+        } else {
+            ++it;
         }
     }
 
@@ -258,27 +409,55 @@ void Game::update(float dt) {
         else ++it;
     }
 
-    for (auto it = ammoDrops.begin(); it != ammoDrops.end(); ) {
-        it->update(dt);
-        if (it->isExpired()) it = ammoDrops.erase(it);
-        else ++it;
+    // --- ATUALIZAÇÃO DO HUD E TIMER REGRESSIVO ---
+    int timeLeft = static_cast<int>(maxMusicTime - timeSurvived);
+    if (timeLeft < 0) timeLeft = 0; // Trava no zero para não mostrar números negativos
+
+    hpText.setString("Vida: " + std::to_string(hero.hp) + "/100");
+    ammoText.setString("Municao: " + std::to_string(hero.ammo) + "/" + std::to_string(hero.maxAmmo));
+    timerText.setString("Tempo: " + std::to_string(timeLeft) + "s"); // Agora mostra o tempo caindo!
+    baseHpText.setString("Base: " + std::to_string(baseCore.hp));
+
+    // --- LÓGICA DE FIM DE JOGO UNIFICADA ---
+    if (baseCore.isDestroyed() || hero.hp <= 0) {
+        gameOver = true;
+    }
+    
+    // Condição Reserva: Se a música acabar e o Boss AINDA estiver vivo, é Game Over!
+    if (timeSurvived >= maxMusicTime && !finalBossDefeated) {
+        gameOver = true;
     }
 
-    // Atualiza os valores do HUD na tela
-    hpText.setString("Vida: " + std::to_string(hero.hp) + "/100");
-    ammoText.setString("Municao: " + std::to_string(hero.ammo));
-
-    if (baseCore.isDestroyed() || hero.hp <= 0) {
-        std::cout << "Fim de Jogo! Tempo: " << timeSurvived << "s\n";
-
+    // Se o jogo acabou por derrota ou vitória
+    if (gameOver || victory) {
+        bgMusic.stop();
+        menuMusic.play(); 
+        
         lastScore = static_cast<int>(timeSurvived);
-        finalTimeText.setString("Tempo sobrevivido: " + std::to_string(lastScore) + "s");
+        
+        // Define se foi Vitória ou Derrota na tela final
+        if (victory) {
+            gameOverText.setString("YOU WIN!");
+            gameOverText.setFillColor(sf::Color::Cyan); 
+            finalTimeText.setString("Tempo de conclusao: " + std::to_string(lastScore) + "s");
+        } else {
+            gameOverText.setString("GAME OVER");
+            gameOverText.setFillColor(sf::Color::Red);
+            finalTimeText.setString("Tempo sobrevivido: " + std::to_string(lastScore) + "s");
+        }
+        
+        centerText(gameOverText, 400.f, 200.f); // Re-centraliza a palavra
         centerText(finalTimeText, 400.f, 270.f);
 
-        if (leaderboard.qualifies(lastScore)) {
+        // SÓ entra no Scoreboard se VENCEU o jogo e tem pontuação
+        if (victory && leaderboard.qualifies(lastScore)) {
             playerNameInput.clear();
             nameEntryInputText.setString("_");
             centerText(nameEntryInputText, 400.f, 380.f);
+            
+            newRecordText.setCharacterSize(24);
+            centerText(newRecordText, 400.f, 235.f);
+
             state = GameState::ENTER_NAME;
         } else {
             state = GameState::GAME_OVER;
@@ -291,7 +470,7 @@ void Game::resetGame() {
     baseCore = Base(400.f, 300.f);
     enemies.clear();
     projectiles.clear();
-    ammoDrops.clear();
+    boosts.clear();
 
     while (!spawnQueue.empty()) spawnQueue.pop();
     spawnQueue.push(2.0f);
@@ -300,6 +479,11 @@ void Game::resetGame() {
 
     timeSurvived = 0.f;
     state = GameState::PLAYING;
+
+    menuMusic.stop(); //pára músca do menu
+
+    bgMusic.stop(); // Garante que a trilha volte do zero se o jogador estiver dando "Replay"
+    bgMusic.play(); // Inicia a música em sincronia com o timeSurvived
 }
 
 void Game::handleCollisions() {
@@ -309,14 +493,67 @@ void Game::handleCollisions() {
         if (pIt->isHeroOwned) {
             for (auto eIt = enemies.begin(); eIt != enemies.end(); ) {
                 if (pIt->shape.getGlobalBounds().findIntersection(eIt->shape.getGlobalBounds()).has_value()) {
-                    eIt->hp -= 10;
-                    if (eIt->hp <= 0) {
-                        ammoDrops.push_back(AmmoDrop(eIt->shape.getPosition()));
-                        eIt = enemies.erase(eIt);
-                    } else { ++eIt; }
+                    
+                    int oldHp = eIt->hp; // Salva a vida antes do tiro
+                    int oldTeleportHp = eIt->nextTeleportHp; // SALVA O GATILHO DO TELEPORTE
+
+                    // Aplica o dano
+                    if (pIt->isPowered) {
+                        eIt->takeDamage(60); 
+                    } else {
+                        eIt->takeDamage(20); 
+                    }
+
+                    // --- DROP DE MUNIÇÃO A CADA TELEPORTE ---
+                    // Se o alvo de teleporte diminuiu, significa que ele acabou de piscar na tela!
+                    if (eIt->type == EnemyType::FinalBoss && eIt->nextTeleportHp < oldTeleportHp) {
+                        // Dropa uma munição normal um pouco abaixo de onde ele reapareceu
+                        boosts.push_back(Boost(eIt->shape.getPosition().x, eIt->shape.getPosition().y + 40.f, BoostType::MegaAmmo));
+                    }
+
+                    // --- CHECAGEM DO DROP DE 50% DO BOSS (em 750 HP) ---
+                    if (eIt->type == EnemyType::FinalBoss && oldHp > 750 && eIt->hp <= 750) {
+                        // Ele dropa uma Poção e um PowerUp nos lados do chefe
+                        boosts.push_back(Boost(eIt->shape.getPosition().x - 30.f, eIt->shape.getPosition().y, BoostType::Health));
+                        boosts.push_back(Boost(eIt->shape.getPosition().x + 30.f, eIt->shape.getPosition().y, BoostType::PowerUp));
+                    }
+                    // SE O INIMIGO ZERAR A VIDA
+                    if(eIt->hp <= 0) {
+                        
+                        // SE FOR O FINAL BOSS
+                        if (eIt->type == EnemyType::FinalBoss) {
+                            if (!eIt->isDying) {
+                                eIt->isDying = true; // Inicia a animação
+                                eIt->hp = 1;         // Trava a vida
+                                victory = true;     // Gatilho de vitória (texto YOU WIN!)
+                            }
+                            ++eIt; // Apenas avança, não apaga ainda!
+                        } 
+                        // SE FOR INIMIGO COMUM OU MINIBOSS
+                        else {
+                            // Lógica das Odds: 60/20/10/10
+                            int itemRoll = rand() % 100;
+                            BoostType droppedType;
+
+                            if (itemRoll < 60) { droppedType = BoostType::NormalAmmo; } 
+                            else if (itemRoll < 80) { droppedType = BoostType::Health; } 
+                            else if (itemRoll < 90) { droppedType = BoostType::MegaAmmo; } 
+                            else { droppedType = BoostType::PowerUp; }
+
+                            // Cria o item
+                            boosts.push_back(Boost(eIt->shape.getPosition().x, eIt->shape.getPosition().y, droppedType));
+
+                            eIt = enemies.erase(eIt); // Apaga o inimigo da lista
+                        }
+                    } else {
+                        ++eIt; // Só incrementa se não zerou a vida
+                    }
+                    
                     projectileDestroyed = true;
                     break;
-                } else { ++eIt; }
+                } else { 
+                    ++eIt; 
+                }
             }
         } else {
             if (pIt->shape.getGlobalBounds().findIntersection(hero.shape.getGlobalBounds()).has_value()) {
@@ -333,32 +570,36 @@ void Game::handleCollisions() {
         else ++pIt;
     }
 
-    for (auto it = ammoDrops.begin(); it != ammoDrops.end(); ) {
-        if (hero.shape.getGlobalBounds().findIntersection(it->shape.getGlobalBounds()).has_value()) {
-            hero.ammo += it->ammoAmount;
-            it = ammoDrops.erase(it);
-        } else { ++it; }
-    }
 }
 
 void Game::render() {
     window.clear(sf::Color(220, 220, 220));
-
     if (state == GameState::START) {
         renderStart();
     } else {
+        if (finalBossSpawned && !finalBossDefeated && state == GameState::PLAYING) {
+            window.draw(dangerBorder);
+        } 
         window.draw(baseCore.shape);
         window.draw(hero.shape);
         for (auto& e : enemies) window.draw(e.shape);
         for (auto& p : projectiles) window.draw(p.shape);
-        for (auto& a : ammoDrops) window.draw(a.shape);
-
-        // Desenha o HUD
+        
+        for (auto& boost : boosts) {
+            window.draw(boost.shape);
+        }
+        
+        // Desenha o HUD de Gameplay (SEM as instruções para não poluir!)
+        window.draw(baseHpText);
         window.draw(hpText);
         window.draw(ammoText);
-        window.draw(moveHintText);
-        window.draw(shootHintText);
+        window.draw(timerText);
+        window.draw(bossHpText);
 
+        if (victory && state == GameState::PLAYING) {
+            window.draw(creditsText);
+        }
+        
         if (state == GameState::ENTER_NAME) renderEnterName();
         else if (state == GameState::GAME_OVER) renderGameOver();
     }
@@ -372,12 +613,24 @@ void Game::renderStart() {
     window.draw(leaderboardText);
     window.draw(startButton);
     window.draw(startButtonText);
+    window.draw(moveHintText);
+    window.draw(shootHintText);
+    window.draw(objectiveHintText);
 }
 
 void Game::renderGameOver() {
     sf::RectangleShape overlay(sf::Vector2f(800.f, 600.f));
     overlay.setFillColor(sf::Color(0, 0, 0, 160));
     window.draw(overlay);
+
+    // --- NOVO: A caixinha semi-transparente de destaque ---
+    sf::RectangleShape box(sf::Vector2f(400.f, 80.f));
+    box.setFillColor(sf::Color(0, 0, 0, 200)); // Fundo preto escuro
+    box.setOutlineColor(gameOverText.getFillColor()); // Puxa a cor do texto (Azul ou Vermelho!)
+    box.setOutlineThickness(2.f);
+    box.setOrigin(sf::Vector2f(200.f, 40.f));
+    box.setPosition(sf::Vector2f(400.f, 200.f));
+    window.draw(box);
 
     window.draw(gameOverText);
     window.draw(finalTimeText);
@@ -392,6 +645,18 @@ void Game::renderEnterName() {
     overlay.setFillColor(sf::Color(0, 0, 0, 160));
     window.draw(overlay);
 
+    // --- A caixinha semi-transparente de destaque ---
+    sf::RectangleShape box(sf::Vector2f(400.f, 80.f));
+    box.setFillColor(sf::Color(0, 0, 0, 200));
+    box.setOutlineColor(gameOverText.getFillColor());
+    box.setOutlineThickness(2.f);
+    box.setOrigin(sf::Vector2f(200.f, 40.f));
+    box.setPosition(sf::Vector2f(400.f, 200.f));
+    window.draw(box);
+
+    // Desenha a palavra YOU WIN ou GAME OVER por cima da caixa
+    window.draw(gameOverText); 
+    
     window.draw(newRecordText);
     window.draw(finalTimeText);
     window.draw(nameEntryPromptText);
